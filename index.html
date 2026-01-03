@@ -135,9 +135,9 @@
         <div id="errorCard" class="hidden animate-reveal-card bg-paper border border-ink p-12 text-center shadow-editorial">
             <h3 class="font-display text-3xl mb-4 uppercase tracking-tighter">No Referral Found</h3>
             <p class="text-ink/60 text-sm mb-8 font-sans leading-relaxed max-w-xs mx-auto">
-                Sorry, no referral found for this email 😔<br>Start by filling our survey!
+                Sorry, no referral found for this code 😔<br>Start by filling our survey!
             </p>
-            <a href="https://forms.gle/75hpEtJ47CXPBRfF9" target="_blank" class="inline-block font-mono text-[10px] uppercase tracking-[0.3em] bg-ink text-white px-8 py-4 hover:bg-gold transition-colors">
+            <a href="https://forms.gle/WVhmAFCRcaFkQ2rc9" target="_blank" class="inline-block font-mono text-[10px] uppercase tracking-[0.3em] bg-ink text-white px-8 py-4 hover:bg-gold transition-colors">
                 Start Survey &rarr;
             </a>
         </div>
@@ -210,20 +210,19 @@
     <script>
         const CONFIG = {
             SHEET_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQUuTtKd5-2vcGIMAYxIGxSJd9j26G16lLf80fTgdHWbak3bjJwa6csjSI9C8YndzT09ETta6GUfDAY/pub?output=csv',
-            // Extended list of proxies with different mechanisms
             PROXIES: [
                 'https://api.allorigins.win/raw?url=',
                 'https://corsproxy.io/?',
                 'https://thingproxy.freeboard.io/fetch/',
                 'https://api.codetabs.com/v1/proxy?quest='
             ],
-            COL_SEARCH_KEY: 18, 
-            COL_NAME: 2,       
-            COL_REF_COUNT: 19,  
-            COL_EVENT_1: 20,    
-            COL_EVENT_2: 21,    
-            COL_EVENT_3: 22,    
-            COL_EXPECTED_DATE: 23,
+            // FIXED MAPPINGS FOR YOUR SHEET
+            COL_SEARCH_KEY: 20,    // Column U (Referral Code)
+            COL_NAME: 2,          // Column C (Name)
+            COL_REF_COUNT: 21,    // Column V (Completion Count)
+            COL_EXPECTED_DATE: 22, // Column W (Expected Date)
+            COL_LOGS: 23,          // Column X (Activity Logs)
+            
             STATUS: {
                 0: { pct: 5, emoji: '📤', hero: 'JOURNEY INITIALIZED' },
                 1: { pct: 33, emoji: '👍', hero: 'FIRST MILESTONE REACHED' },
@@ -247,31 +246,26 @@
             if (e.key === 'Enter') trackReferral();
         });
 
-        // Helper for staggered retries
         const wait = ms => new Promise(res => setTimeout(res, ms));
 
         async function fetchWithFailover(url) {
             const finalUrl = `${url}&cachebust=${Date.now()}`;
-            
-            // 1. Try Direct Fetch
             try {
                 const response = await fetch(finalUrl);
                 if (response.ok) return await response.text();
-            } catch (e) { console.warn("Direct access blocked by browser security."); }
+            } catch (e) { console.warn("Direct access blocked."); }
 
-            // 2. Cycle through Proxies with small delays
             for (let i = 0; i < CONFIG.PROXIES.length; i++) {
                 try {
-                    await wait(i * 100); // Stagger requests
+                    await wait(i * 100);
                     const proxyUrl = `${CONFIG.PROXIES[i]}${encodeURIComponent(finalUrl)}`;
                     const response = await fetch(proxyUrl);
                     if (response.ok) {
                         const text = await response.text();
-                        if (text && text.length > 50) return text; // Basic check for valid CSV content
+                        if (text && text.length > 50) return text;
                     }
                 } catch (e) { console.warn(`Gateway ${i+1} failed.`); }
             }
-
             throw new Error("Registry Connection Failed");
         }
 
@@ -291,7 +285,6 @@
 
             try {
                 const csvData = await fetchWithFailover(CONFIG.SHEET_URL);
-                
                 Papa.parse(csvData, {
                     header: false,
                     skipEmptyLines: true,
@@ -318,11 +311,10 @@
             const loader = document.getElementById('loader');
             const welcome = document.getElementById('welcomeInfo');
             const errorBox = document.getElementById('errorCard');
-            
             loader.classList.add('hidden');
             welcome.classList.remove('hidden');
             errorBox.querySelector('h3').textContent = "Connection Sync Issue";
-            errorBox.querySelector('p').textContent = "Your browser is restricting access to the referral ledger. Please try disabling 'Enhanced Tracking Protection' or open this page in Chrome/Safari.";
+            errorBox.querySelector('p').textContent = "Your browser is restricting access to the referral ledger. Please try disabling 'Enhanced Tracking Protection' or use Chrome.";
             errorBox.classList.remove('hidden');
         }
 
@@ -330,7 +322,6 @@
             let foundRow = null;
             const searchCode = code.toLowerCase();
             
-            // i=1 to skip header
             for (let i = 1; i < rows.length; i++) {
                 const rowValue = rows[i][CONFIG.COL_SEARCH_KEY];
                 if (rowValue && rowValue.toString().toLowerCase().trim() === searchCode) {
@@ -342,7 +333,7 @@
             if (!foundRow) {
                 const errorCard = document.getElementById('errorCard');
                 errorCard.querySelector('h3').textContent = "No Referral Found";
-                errorCard.querySelector('p').innerHTML = "Sorry, no referral found for this code 😔<br>Double check your entry or start a new survey!";
+                errorCard.querySelector('p').innerHTML = "Sorry, no record found for this code 😔<br>Double check your entry!";
                 errorCard.classList.remove('hidden');
                 return;
             }
@@ -370,15 +361,16 @@
             const timeline = document.getElementById('timelineContainer');
             timeline.innerHTML = '';
             
-            const events = [row[CONFIG.COL_EVENT_1], row[CONFIG.COL_EVENT_2], row[CONFIG.COL_EVENT_3]].filter(e => e && e.trim());
-            
-            events.forEach((txt, i) => {
+            // Extract and show the log from Column X
+            const logEntry = row[CONFIG.COL_LOGS];
+            if (logEntry) {
                 const div = document.createElement('div');
-                div.className = 'border-l-2 border-gold pl-6 py-2 opacity-0 animate-reveal-card';
-                div.style.animationDelay = `${(i+1)*150}ms`;
-                div.innerHTML = `<p class="font-sans text-xs uppercase font-bold tracking-tight text-ink/70">${txt}</p>`;
+                div.className = 'border-l-2 border-gold pl-6 py-2 animate-reveal-card';
+                div.innerHTML = `<p class="font-sans text-xs uppercase font-bold tracking-tight text-ink/70">${logEntry}</p>`;
                 timeline.appendChild(div);
-            });
+            } else {
+                timeline.innerHTML = '<p class="text-center font-mono text-[9px] text-ink/30 uppercase">No recent activity detected</p>';
+            }
 
             if (count === 3) {
                 document.getElementById('winnerBanner').classList.remove('hidden');
