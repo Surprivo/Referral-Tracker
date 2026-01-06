@@ -101,7 +101,7 @@
                         class="bg-transparent px-6 py-3 font-mono text-base md:text-lg focus:outline-none uppercase placeholder:text-ink/20 text-center md:text-left w-full font-bold tracking-tight"
                         oninput="handleInput(this)"
                     >
-                    <span id="inputHint" class="px-6 text-[9px] font-mono text-ink/40 text-center md:text-left uppercase tracking-widest transition-opacity duration-300">eg. TVR-XXXX-123</span>
+                    <span id="inputHint" class="px-6 text-[9px] font-mono text-ink/40 text-center md:text-left uppercase tracking-widest transition-opacity duration-300">eg. SPV-XXXX-001</span>
                 </div>
                 <button 
                     onclick="trackReferral()"
@@ -183,7 +183,7 @@
                     </div>
 
                     <section class="pt-10">
-                        <h5 class="font-mono text-[9px] uppercase tracking-[0.5em] text-ink/40 mb-10 text-center">Activity Log</h5>
+                        <h5 class="font-mono text-[9px] uppercase tracking-[0.5em] text-ink/40 mb-10 text-center">Activity Status</h5>
                         <div class="space-y-4" id="timelineContainer"></div>
                     </section>
 
@@ -200,7 +200,7 @@
         <div class="flex flex-col items-center gap-6">
             <div class="space-y-2">
                 <p class="font-mono text-[10px] text-ink/60 uppercase tracking-widest font-bold">
-                    © 2026 Surprivo. Updated: <span id="footerTimestamp"></span>
+                    © 2026 Surprivo
                 </p>
                 <p class="font-sans text-[11px] text-ink/40 font-medium">Made with ❤️ for book lovers</p>
             </div>
@@ -216,12 +216,17 @@
                 'https://thingproxy.freeboard.io/fetch/',
                 'https://api.codetabs.com/v1/proxy?quest='
             ],
-            // FIXED MAPPINGS FOR YOUR SHEET
-            COL_SEARCH_KEY: 21,    // Column U (Referral Code)
-            COL_NAME: 2,          // Column C (Name)
-            COL_REF_COUNT: 22,    // Column V (Completion Count)
-            COL_EXPECTED_DATE: 24, // Column W (Expected Date)
-            COL_LOGS: 23,          // Column X (Activity Logs)
+            // COLUMN MAPPINGS (0-indexed)
+            COL_TIMESTAMP: 0,      // Column A
+            COL_NAME: 2,           // Column C
+            COL_PHONE: 15,         // Column P
+            COL_RAW_GENRE: 12,     // Column M
+            COL_REFERRAL_CODE: 19, // Column T
+            COL_COMPLETION_COUNT: 20, // Column U
+            COL_EXPECTED_DATE: 22, // Column W
+            COL_TRACK_ID: 26,      // Column AA
+            COL_ORDER_STATUS: 28,  // Column AC
+            COL_STAGE_VALUE: 21,   // Column V
             
             STATUS: {
                 0: { pct: 5, emoji: '📤', hero: 'JOURNEY INITIALIZED' },
@@ -235,12 +240,6 @@
             const hint = document.getElementById('inputHint');
             hint.style.opacity = input.value.length > 0 ? '0' : '1';
         }
-
-        function updateTimestamp() {
-            const now = new Date();
-            document.getElementById('footerTimestamp').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        }
-        updateTimestamp();
 
         document.getElementById('referralCode').addEventListener('keypress', e => {
             if (e.key === 'Enter') trackReferral();
@@ -323,8 +322,8 @@
             const searchCode = code.toLowerCase();
             
             for (let i = 1; i < rows.length; i++) {
-                const rowValue = rows[i][CONFIG.COL_SEARCH_KEY];
-                if (rowValue && rowValue.toString().toLowerCase().trim() === searchCode) {
+                const rowValue = (rows[i][CONFIG.COL_REFERRAL_CODE] || '').toString().toLowerCase().trim();
+                if (rowValue === searchCode) {
                     foundRow = rows[i];
                     break;
                 }
@@ -342,11 +341,11 @@
         }
 
         function renderCard(row) {
-            const count = Math.min(Math.max(parseInt(row[CONFIG.COL_REF_COUNT]) || 0, 0), 3);
+            const count = Math.min(Math.max(parseInt(row[CONFIG.COL_COMPLETION_COUNT]) || 0, 0), 3);
             const status = CONFIG.STATUS[count];
             
-            document.getElementById('displayName').textContent = `HI ${row[CONFIG.COL_NAME] || 'READER'}! 👋`;
-            document.getElementById('displayCode').textContent = `ID: ${row[CONFIG.COL_SEARCH_KEY]}`;
+            document.getElementById('displayName').textContent = `HI ${(row[CONFIG.COL_NAME] || 'READER').toUpperCase()}! 👋`;
+            document.getElementById('displayCode').textContent = `ID: ${row[CONFIG.COL_REFERRAL_CODE] || '---'}`;
             document.getElementById('gridExpectedDate').textContent = row[CONFIG.COL_EXPECTED_DATE] || 'PENDING';
             document.getElementById('gridReferredCount').textContent = `${count} / 3`;
             
@@ -361,16 +360,14 @@
             const timeline = document.getElementById('timelineContainer');
             timeline.innerHTML = '';
             
-            // Extract and show the log from Column X
-            const logEntry = row[CONFIG.COL_LOGS];
-            if (logEntry) {
-                const div = document.createElement('div');
-                div.className = 'border-l-2 border-gold pl-6 py-2 animate-reveal-card';
-                div.innerHTML = `<p class="font-sans text-xs uppercase font-bold tracking-tight text-ink/70">${logEntry}</p>`;
-                timeline.appendChild(div);
-            } else {
-                timeline.innerHTML = '<p class="text-center font-mono text-[9px] text-ink/30 uppercase">No recent activity detected</p>';
-            }
+            // Show status based on order status
+            const orderStatus = (row[CONFIG.COL_ORDER_STATUS] || '').toString().toLowerCase();
+            const statusText = orderStatus === 'created' ? '✓ Your referral code is active' : '✓ Processing your referral';
+            
+            const div = document.createElement('div');
+            div.className = 'border-l-2 border-gold pl-6 py-2 animate-reveal-card';
+            div.innerHTML = `<p class="font-sans text-xs uppercase font-bold tracking-tight text-ink/70">${statusText}</p>`;
+            timeline.appendChild(div);
 
             if (count === 3) {
                 document.getElementById('winnerBanner').classList.remove('hidden');
