@@ -340,11 +340,9 @@ errorCard.classList.remove('hidden');
 return;
 }
 
-renderCard(foundRow);
-}
-
 function renderCard(row) {
-const count = Math.min(Math.max(parseInt(row[CONFIG.COL_REF_COUNT]) || 0, 0), 3);
+const rawValue = (row[CONFIG.COL_REF_COUNT] || '').toString().trim();
+const count = Math.min(Math.max(parseInt(rawValue) || 0, 0), 3);
 const status = CONFIG.STATUS[count];
 
 document.getElementById('displayName').textContent = `HI ${row[CONFIG.COL_NAME] || 'READER'}! 👋`;
@@ -363,7 +361,6 @@ document.getElementById('statusHero').textContent = status.hero;
 const timeline = document.getElementById('timelineContainer');
 timeline.innerHTML = '';
 
-// Extract and show the log from Column X
 const logEntry = row[CONFIG.COL_LOGS];
 if (logEntry) {
 const div = document.createElement('div');
