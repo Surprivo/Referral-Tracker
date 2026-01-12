@@ -173,8 +173,8 @@ Start Survey &rarr;
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border-soft border border-border-soft mb-12">
 <div class="bg-paper p-8">
-<label class="block font-mono text-[9px] uppercase tracking-widest text-gold mb-3 font-bold">Estimated Dispatch</label>
-<span id="gridExpectedDate" class="font-display text-2xl uppercase tracking-tighter">---</span>
+<label class="block font-mono text-[9px] uppercase tracking-widest text-gold mb-3 font-bold">Referral Points</label>
+<span id="gridReferralPoints" class="font-display text-2xl uppercase tracking-tighter">0</span>
 </div>
 <div class="bg-paper p-8 text-right">
 <label class="block font-mono text-[9px] uppercase tracking-widest text-gold mb-3 font-bold">Total Referrals</label>
@@ -209,7 +209,7 @@ Start Survey &rarr;
 
 <script>
 const CONFIG = {
-SHEET_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrbQw1I0zn-B0jLxHfcdFzlczPE7dBavFD1qM4K34G7niHeJ-ckuBRsv4w9wPvCdHUOpTmguhujBE4/pub?gid=5704552&single=true&output=csv',
+SHEET_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0PKXW-dExFWQIDcBUNp6Zb0cVbbRtZSYbmWN7zw71ILDTy9uWcgaM7JRn90fKKE6Xtcj1G1JWm5Zp/pub?gid=1236747587&single=true&output=csv',
 PROXIES: [
 'https://api.allorigins.win/raw?url=',
 'https://corsproxy.io/?',
@@ -217,12 +217,10 @@ PROXIES: [
 'https://api.codetabs.com/v1/proxy?quest='
 ],
 
-
-// FIXED MAPPINGS FOR YOUR SHEET
-COL_SEARCH_KEY: 19, // Column U (Referral Code)
-COL_NAME: 2, // Column C (Name)
-COL_REF_COUNT: 20, // Column V (Completion Count)
-COL_EXPECTED_DATE: 22, // Column W (Expected Date)
+// UPDATED MAPPINGS FOR YOUR SHEET
+COL_SEARCH_KEY: 21, // Column V (Referral Code)
+COL_NAME: 2, // Column C (Name)  
+COL_REF_COUNT: 22, // Column W (Referral Points/Count)
 COL_LOGS: 23, // Column X (Activity Logs)
 
 STATUS: {
@@ -349,7 +347,7 @@ const status = CONFIG.STATUS[count];
 
 document.getElementById('displayName').textContent = `HI ${row[CONFIG.COL_NAME] || 'READER'}! 👋`;
 document.getElementById('displayCode').textContent = `ID: ${row[CONFIG.COL_SEARCH_KEY]}`;
-document.getElementById('gridExpectedDate').textContent = row[CONFIG.COL_EXPECTED_DATE] || 'PENDING';
+document.getElementById('gridReferralPoints').textContent = row[CONFIG.COL_REF_COUNT] || '0';
 document.getElementById('gridReferredCount').textContent = `${count} / 3`;
 
 const bar = document.getElementById('progressBar');
